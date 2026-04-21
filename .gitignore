@@ -1,0 +1,26 @@
+# ═══════════════════════════════════════════════════════════
+#  .gitignore — Wikipedia RAG Pipeline
+# ═══════════════════════════════════════════════════════════
+
+# ── Variables de entorno (SECRETOS) ───────────────────────
+.env
+
+# ── Python ────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── IDE ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ── Docker ────────────────────────────────────────────────
+# Los volúmenes de datos se manejan por Docker, no por Git
