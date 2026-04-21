@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Presentación interactiva sobre Bases de Datos Vectorizadas: qué son, cómo funcionan, pgvector y RAG con LangChain">
+    <title>Bases de Datos Vectorizadas — Presentación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN TOKENS
+           ═══════════════════════════════════════════════════════ */
+        :root {
+            --bg-deep: #060610;
+            --bg-surface: #0c0c1a;
+            --bg-card: #141428;
+            --bg-card-hover: #1c1c38;
+            --bg-elevated: #222244;
+
+            --accent-primary: #7c6aff;
+            --accent-secondary: #00e6b8;
+            --accent-tertiary: #ff6b8a;
+            --accent-gold: #ffd644;
+            --accent-cyan: #36d7d7;
+            --accent-pink: #e879f9;
+            --accent-orange: #ff9f43;
+            --accent-blue: #4da6ff;
+
+            --gradient-primary: linear-gradient(135deg, #7c6aff 0%, #36d7d7 100%);
+            --gradient-warm: linear-gradient(135deg, #ff6b8a 0%, #ffd644 100%);
+            --gradient-cool: linear-gradient(135deg, #7c6aff 0%, #e879f9 100%);
+            --gradient-emerald: linear-gradient(135deg, #00e6b8 0%, #36d7d7 100%);
+            --gradient-fire: linear-gradient(135deg, #ff6b8a 0%, #ff9f43 100%);
+            --gradient-ocean: linear-gradient(135deg, #4da6ff 0%, #36d7d7 100%);
+
+            --text-primary: #eaeaf2;
+            --text-secondary: #a4a4c0;
+            --text-muted: #6a6a88;
+
+            --border-subtle: rgba(124, 106, 255, 0.12);
+            --border-glow: rgba(124, 106, 255, 0.35);
+
+            --shadow-glow: 0 0 40px rgba(124, 106, 255, 0.12);
+            --shadow-glow-lg: 0 0 60px rgba(124, 106, 255, 0.18);
+
+            --font-main: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════════════════ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-main);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ANIMATED BACKGROUND
+           ═══════════════════════════════════════════════════════ */
+        .bg-particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-particles .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.10;
+            animation: orbFloat 25s ease-in-out infinite;
+        }
+        .orb:nth-child(1) { width: 450px; height: 450px; background: #7c6aff; top: 5%; left: 5%; }
+        .orb:nth-child(2) { width: 350px; height: 350px; background: #00e6b8; top: 55%; right: 8%; animation-delay: -8s; }
+        .orb:nth-child(3) { width: 300px; height: 300px; background: #e879f9; bottom: 5%; left: 35%; animation-delay: -16s; }
+        .orb:nth-child(4) { width: 250px; height: 250px; background: #ff9f43; top: 30%; right: 30%; animation-delay: -12s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -50px) scale(1.06); }
+            50% { transform: translate(-30px, 35px) scale(0.94); }
+            75% { transform: translate(50px, 25px) scale(1.03); }
+        }
+
+        /* Grid pattern overlay */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+            background-image:
+                linear-gradient(rgba(124,106,255,0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124,106,255,0.3) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           SLIDES CONTAINER
+           ═══════════════════════════════════════════════════════ */
+        .slides-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem 4rem;
+            opacity: 0;
+            transform: translateX(60px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-primary) transparent;
+        }
+
+        .slide::-webkit-scrollbar { width: 4px; }
+        .slide::-webkit-scrollbar-track { background: transparent; }
+        .slide::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 4px; }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .slide.exit-left {
+            opacity: 0;
+            transform: translateX(-60px);
+        }
+
+        .slide-content {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           NAVIGATION CONTROLS
+           ═══════════════════════════════════════════════════════ */
+        .nav-controls {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: rgba(12, 12, 26, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .nav-btn {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 1px solid var(--border-subtle);
+            background: rgba(124, 106, 255, 0.08);
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
+            font-family: var(--font-main);
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(124, 106, 255, 0.4);
+        }
+
+        .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+        .slide-counter {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 60px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .slide-counter .current { color: var(--accent-primary); font-size: 1rem; }
+
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            z-index: 200;
+            transition: width 0.4s ease;
+            border-radius: 0 2px 2px 0;
+            box-shadow: 0 0 12px rgba(124, 106, 255, 0.5);
+        }
+
+        .key-hints {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.2rem 0.5rem;
+            background: rgba(124, 106, 255, 0.1);
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+        }
+
+        .slide-dots {
+            position: fixed;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .slide-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(124, 106, 255, 0.12);
+            border: 1.5px solid rgba(124, 106, 255, 0.25);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            position: relative;
+        }
+
+        .slide-dot:hover {
+            background: rgba(124, 106, 255, 0.4);
+            transform: scale(1.3);
+        }
+
+        .slide-dot.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 8px rgba(124, 106, 255, 0.6);
+            transform: scale(1.2);
+        }
+
+        .slide-dot .dot-tooltip {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition-fast);
+        }
+
+        .slide-dot:hover .dot-tooltip { opacity: 1; }
+
+        /* ═══════════════════════════════════════════════════════
+           TYPOGRAPHY
+           ═══════════════════════════════════════════════════════ */
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-primary);
+            background: rgba(124, 106, 255, 0.08);
+            padding: 0.35rem 1rem;
+            border-radius: 999px;
+            border: 1px solid rgba(124, 106, 255, 0.18);
+            margin-bottom: 1rem;
+        }
+
+        .slide-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 0.8rem;
+            letter-spacing: -0.5px;
+        }
+
+        .gradient-text {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-warm {
+            background: var(--gradient-warm);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-ocean {
+            background: var(--gradient-ocean);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 750px;
+            line-height: 1.65;
+            margin-bottom: 2rem;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           HERO SLIDE
+           ═══════════════════════════════════════════════════════ */
+        .hero-slide { text-align: center; }
+
+        .hero-slide .slide-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); opacity: 0.85; }
+        }
+
+        .hero-slide .slide-title { font-size: clamp(2.2rem, 5vw, 3.5rem); }
+        .hero-slide .slide-subtitle { font-size: 1.15rem; margin: 0 auto 2rem; }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.6rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            font-family: var(--font-main);
+            color: #fff;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            box-shadow: 0 4px 15px rgba(124, 106, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(124, 106, 255, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-glow);
+        }
+
+        .btn-outline:hover { background: rgba(124, 106, 255, 0.1); }
+
+        /* ═══════════════════════════════════════════════════════
+           CARDS GRID
+           ═══════════════════════════════════════════════════════ */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: var(--transition-fast);
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .card:hover::before { opacity: 1; }
+
+        .card.card--emerald::before { background: var(--gradient-emerald); }
+        .card.card--warm::before { background: var(--gradient-warm); }
+        .card.card--ocean::before { background: var(--gradient-ocean); }
+        .card.card--fire::before { background: var(--gradient-fire); }
+
+        .icon-badge {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .icon-badge--violet { background: rgba(124, 106, 255, 0.15); }
+        .icon-badge--green { background: rgba(0, 230, 184, 0.15); }
+        .icon-badge--coral { background: rgba(255, 107, 138, 0.15); }
+        .icon-badge--gold { background: rgba(255, 214, 68, 0.15); }
+        .icon-badge--cyan { background: rgba(54, 215, 215, 0.15); }
+        .icon-badge--pink { background: rgba(232, 121, 249, 0.15); }
+        .icon-badge--orange { background: rgba(255, 159, 67, 0.15); }
+        .icon-badge--blue { background: rgba(77, 166, 255, 0.15); }
+
+        .card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .card p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; }
+
+        /* ═══════════════════════════════════════════════════════
+           STATS
+           ═══════════════════════════════════════════════════════ */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 1.2rem;
+            text-align: center;
+            transition: var(--transition-fast);
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 900;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 0.2rem;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ARCHITECTURE DIAGRAMS
+           ═══════════════════════════════════════════════════════ */
+        .arch-diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .arch-diagram h3 {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            font-size: 1.15rem;
+        }
+
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: wrap;
+            padding: 0.5rem 0;
+        }
+
+        .arch-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 1rem 1.3rem;
+            border-radius: 12px;
+            min-width: 115px;
+            text-align: center;
+            transition: var(--transition-smooth);
+        }
+
+        .arch-node:hover { transform: scale(1.05); }
+
+        .arch-node .node-icon { font-size: 1.5rem; }
+        .arch-node .node-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .arch-node .node-desc { font-size: 0.65rem; color: var(--text-muted); }
+
+        .arch-node--input { background: rgba(124, 106, 255, 0.15); border: 1px solid rgba(124, 106, 255, 0.3); }
+        .arch-node--process { background: rgba(0, 230, 184, 0.12); border: 1px solid rgba(0, 230, 184, 0.3); }
+        .arch-node--storage { background: rgba(255, 107, 138, 0.12); border: 1px solid rgba(255, 107, 138, 0.3); }
+        .arch-node--search { background: rgba(255, 214, 68, 0.12); border: 1px solid rgba(255, 214, 68, 0.3); }
+        .arch-node--output { background: rgba(54, 215, 215, 0.12); border: 1px solid rgba(54, 215, 215, 0.3); }
+        .arch-node--model { background: rgba(232, 121, 249, 0.12); border: 1px solid rgba(232, 121, 249, 0.3); }
+
+        .arch-arrow {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            margin: 0 0.4rem;
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; color: var(--accent-primary); }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           VECTOR VISUALIZATION
+           ═══════════════════════════════════════════════════════ */
+        .vector-vis {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .vector-vis h3 { font-weight: 700; margin-bottom: 1.2rem; font-size: 1.1rem; }
+
+        .vector-space {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 320px;
+            margin: 0 auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            background: rgba(6, 6, 16, 0.6);
+            overflow: hidden;
+        }
+
+        .vector-point {
+            position: absolute;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .vector-point:hover {
+            transform: translate(-50%, -50%) scale(1.8);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .vector-point .point-label {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.68rem;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            transition: var(--transition-fast);
+            background: var(--bg-card);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .vector-point:hover .point-label { opacity: 1; }
+
+        .vector-cluster {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed;
+            opacity: 0.15;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           TWO COLUMNS
+           ═══════════════════════════════════════════════════════ */
+        .two-cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           CODE BLOCKS
+           ═══════════════════════════════════════════════════════ */
+        .code-container {
+            background: #080810;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            background: rgba(124, 106, 255, 0.06);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .code-dots { display: flex; gap: 5px; }
+        .code-dots span { width: 9px; height: 9px; border-radius: 50%; }
+        .code-dots span:nth-child(1) { background: #ff5f57; }
+        .code-dots span:nth-child(2) { background: #ffbd2e; }
+        .code-dots span:nth-child(3) { background: #28ca41; }
+
+        .code-lang {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        pre {
+            padding: 1.2rem;
+            overflow-x: auto;
+            font-size: 0.76rem;
+            line-height: 1.7;
+        }
+
+        code { font-family: var(--font-mono); color: var(--text-primary); }
+
+        .kw { color: #c792ea; }
+        .fn { color: #82aaff; }
+        .st { color: #c3e88d; }
+        .cm { color: #546e7a; }
+        .op { color: #89ddff; }
+        .nb { color: #ffcb6b; }
+        .var { color: #f07178; }
+
+        /* ═══════════════════════════════════════════════════════
+           COMPARE TABLE
+           ═══════════════════════════════════════════════════════ */
+        .compare-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            margin: 1rem 0;
+            font-size: 0.82rem;
+        }
+
+        .compare-table thead th {
+            background: rgba(124, 106, 255, 0.1);
+            padding: 0.8rem 1rem;
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: left;
+            color: var(--accent-primary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .compare-table tbody td {
+            padding: 0.7rem 1rem;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            border-bottom: 1px solid rgba(124, 106, 255, 0.05);
+        }
+
+        .compare-table tbody tr:last-child td { border-bottom: none; }
+        .compare-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+        /* ═══════════════════════════════════════════════════════
+           FEATURE LIST
+           ═══════════════════════════════════════════════════════ */
+        .feature-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+            padding: 0.8rem;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .feature-list li strong { color: var(--text-primary); }
+        .f-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+        /* ═══════════════════════════════════════════════════════
+           TABS
+           ═══════════════════════════════════════════════════════ */
+        .tabs { margin: 1rem 0; }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-family: var(--font-main);
+        }
+
+        .tab-btn:hover { border-color: var(--border-glow); color: var(--text-primary); }
+        .tab-btn.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           DISTANCE METRICS VIS
+           ═══════════════════════════════════════════════════════ */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin: 1.5rem 0;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--transition-smooth);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .metric-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .metric-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.3rem; }
+        .metric-formula {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            background: rgba(124, 106, 255, 0.08);
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .metric-desc { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; }
+
+        /* ═══════════════════════════════════════════════════════
+           FLOW STEPS
+           ═══════════════════════════════════════════════════════ */
+        .flow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .flow-step {
+            display: flex;
+            gap: 0.7rem;
+            align-items: flex-start;
+        }
+
+        .flow-step-num {
+            min-width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .flow-step-text strong { display: block; font-size: 0.85rem; margin-bottom: 0.15rem; }
+        .flow-step-text p { font-size: 0.74rem; color: var(--text-secondary); line-height: 1.4; }
+
+        /* ═══════════════════════════════════════════════════════
+           LAYERS
+           ═══════════════════════════════════════════════════════ */
+        .layers-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .layer {
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            text-align: center;
+            transition: var(--transition-fast);
+        }
+
+        .layer:hover { transform: scale(1.02); }
+
+        .layer-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.2rem; }
+        .layer-desc { font-size: 0.72rem; color: var(--text-secondary); }
+
+        .layer--1 { background: rgba(124, 106, 255, 0.15); border: 1px solid rgba(124, 106, 255, 0.3); }
+        .layer--2 { background: rgba(0, 230, 184, 0.12); border: 1px solid rgba(0, 230, 184, 0.25); }
+        .layer--3 { background: rgba(232, 121, 249, 0.10); border: 1px solid rgba(232, 121, 249, 0.25); }
+        .layer--4 { background: rgba(255, 214, 68, 0.12); border: 1px solid rgba(255, 214, 68, 0.25); }
+        .layer--5 { background: rgba(54, 215, 215, 0.12); border: 1px solid rgba(54, 215, 215, 0.25); }
+
+        /* ═══════════════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .slide { padding: 2rem 1.5rem 5rem; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .feature-list { grid-template-columns: 1fr; }
+            .two-cols { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: 1fr; }
+            .flow-steps { grid-template-columns: 1fr; }
+            .slide-dots { display: none; }
+            .key-hints { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated background -->
+    <div class="bg-particles">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Slides -->
+    <div class="slides-wrapper" id="slidesWrapper">
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 1: HERO
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide hero-slide active" data-title="Inicio">
+            <div class="slide-content">
+                <div class="hero-icon">🗄️</div>
+                <h1 class="slide-title">
+                    Bases de Datos<br>
+                    <span class="gradient-text">Vectorizadas</span>
+                </h1>
+                <p class="slide-subtitle">
+                    Cómo almacenar, buscar y entender información por significado semántico.
+                    De PostgreSQL tradicional a <strong>pgvector</strong> y <strong>RAG</strong> con LangChain.
+                </p>
+                <div class="hero-cta">
+                    <button class="btn btn-primary" onclick="goToSlide(1)">📖 ¿Qué son?</button>
+                    <button class="btn btn-outline" onclick="goToSlide(6)">🐘 pgvector</button>
+                    <button class="btn btn-outline" onclick="goToSlide(10)">🔗 RAG + LangChain</button>
+                    <a href="presentacion.html" class="btn btn-outline" style="border-color: rgba(124,106,255,0.4); color: var(--accent-primary); font-size: 0.8rem;">← Volver a LangChain & LangGraph</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 2: EL PROBLEMA
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="El Problema">
+            <div class="slide-content">
+                <span class="section-badge">❓ Motivación</span>
+                <h2 class="slide-title">El Problema de la <span class="gradient-text-warm">Búsqueda Tradicional</span></h2>
+                <p class="slide-subtitle">
+                    Las bases de datos tradicionales buscan por coincidencia exacta de texto.
+                    Pero el lenguaje humano es ambiguo, y los sinónimos son la norma.
+                </p>
+
+                <div class="two-cols">
+                    <div>
+                        <div class="arch-diagram" style="border-color: rgba(255,107,138,0.3);">
+                            <h3>❌ Búsqueda Tradicional (SQL LIKE)</h3>
+                            <div class="code-container" style="margin: 0;">
+                                <div class="code-header">
+                                    <div class="code-dots"><span></span><span></span><span></span></div>
+                                    <span class="code-lang">SQL</span>
+                                </div>
+                                <pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> productos
+<span class="kw">WHERE</span> descripcion <span class="kw">LIKE</span> <span class="st">'%zapato%'</span>;
+
+<span class="cm">-- ❌ NO encuentra:</span>
+<span class="cm">-- "calzado deportivo"</span>
+<span class="cm">-- "zapatillas para correr"</span>
+<span class="cm">-- "tennis Nike Air"</span></code></pre>
+                            </div>
+                            <p style="font-size: 0.78rem; color: var(--accent-tertiary); margin-top: 0.8rem; text-align: center;">
+                                Solo encuentra coincidencias exactas de texto
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="arch-diagram" style="border-color: rgba(0,230,184,0.3);">
+                            <h3>✅ Búsqueda Vectorial (Semántica)</h3>
+                            <div class="code-container" style="margin: 0;">
+                                <div class="code-header">
+                                    <div class="code-dots"><span></span><span></span><span></span></div>
+                                    <span class="code-lang">Concepto</span>
+                                </div>
+                                <pre><code><span class="cm"># Buscar: "zapato"</span>
+<span class="cm"># ✅ Encuentra por SIGNIFICADO:</span>
+
+<span class="st">"calzado deportivo"</span>     <span class="cm"># similitud: 0.92</span>
+<span class="st">"zapatillas para correr"</span> <span class="cm"># similitud: 0.89</span>
+<span class="st">"tennis Nike Air"</span>      <span class="cm"># similitud: 0.85</span>
+<span class="st">"botas de montaña"</span>     <span class="cm"># similitud: 0.78</span></code></pre>
+                            </div>
+                            <p style="font-size: 0.78rem; color: var(--accent-secondary); margin-top: 0.8rem; text-align: center;">
+                                Encuentra documentos por significado semántico
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 3: ¿QUÉ SON?
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="¿Qué son?">
+            <div class="slide-content">
+                <span class="section-badge">📖 Fundamentos</span>
+                <h2 class="slide-title">¿Qué es una <span class="gradient-text">Base de Datos Vectorizada</span>?</h2>
+                <p class="slide-subtitle">
+                    Una base de datos optimizada para almacenar, indexar y buscar <strong>vectores</strong>
+                    (arrays de números) que representan el significado semántico del dato.
+                </p>
+
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-number">1536</div>
+                        <div class="stat-label">📊 Dimensiones (OpenAI)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">&lt;50ms</div>
+                        <div class="stat-label">⚡ Búsqueda en millones</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">3+</div>
+                        <div class="stat-label">📐 Métricas de distancia</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">∞</div>
+                        <div class="stat-label">🌐 Tipos de datos</div>
+                    </div>
+                </div>
+
+                <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="card">
+                        <div class="icon-badge icon-badge--violet">📝</div>
+                        <h3>Texto</h3>
+                        <p>Documentos, artículos, preguntas frecuentes, código fuente. Cada fragmento se convierte en un vector.</p>
+                    </div>
+                    <div class="card card--emerald">
+                        <div class="icon-badge icon-badge--green">🖼️</div>
+                        <h3>Imágenes</h3>
+                        <p>Fotos, diagramas, capturas. Modelos como CLIP convierten imágenes en vectores comparables con texto.</p>
+                    </div>
+                    <div class="card card--warm">
+                        <div class="icon-badge icon-badge--coral">🎵</div>
+                        <h3>Audio / Video</h3>
+                        <p>Canciones, podcasts, videos. Se pueden buscar clips similares por contenido semántico.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 4: EMBEDDINGS
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Embeddings">
+            <div class="slide-content">
+                <span class="section-badge">🔢 Concepto Clave</span>
+                <h2 class="slide-title">¿Qué son los <span class="gradient-text">Embeddings</span>?</h2>
+                <p class="slide-subtitle">
+                    Un embedding es una representación numérica (vector) de un dato.
+                    Textos con significado similar producen vectores cercanos en el espacio.
+                </p>
+
+                <div class="two-cols">
+                    <div>
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Python — Generando Embeddings</span>
+                            </div>
+                            <pre><code><span class="kw">from</span> <span class="nb">langchain_openai</span> <span class="kw">import</span> <span class="fn">OpenAIEmbeddings</span>
+
+<span class="cm"># Crear modelo de embeddings</span>
+embeddings = <span class="fn">OpenAIEmbeddings</span>(
+    model=<span class="st">"text-embedding-3-small"</span>
+)
+
+<span class="cm"># Convertir texto → vector</span>
+vector = embeddings.<span class="fn">embed_query</span>(
+    <span class="st">"Gato persa dormido"</span>
+)
+
+<span class="fn">print</span>(<span class="fn">len</span>(vector))  <span class="cm"># → 1536</span>
+<span class="fn">print</span>(vector[:<span class="var">5</span>])
+<span class="cm"># → [0.012, -0.034, 0.078, ...]</span></code></pre>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="vector-vis">
+                            <h3>🌌 Espacio Vectorial (2D simplificado)</h3>
+                            <div class="vector-space" id="vectorSpace">
+                                <!-- Axes -->
+                                <div class="axis-label" style="bottom: 5px; left: 50%; transform: translateX(-50%);">Dimensión 1</div>
+                                <div class="axis-label" style="left: 5px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: left;">Dim 2</div>
+
+                                <!-- Clusters -->
+                                <div class="vector-cluster" style="left: 60%; top: 18%; width: 160px; height: 120px; border-color: var(--accent-primary);"></div>
+                                <div class="vector-cluster" style="left: 8%; top: 50%; width: 140px; height: 130px; border-color: var(--accent-secondary);"></div>
+                                <div class="vector-cluster" style="left: 55%; top: 60%; width: 150px; height: 110px; border-color: var(--accent-tertiary);"></div>
+
+                                <!-- Points — Animals cluster -->
+                                <div class="vector-point" style="left: 70%; top: 22%; background: var(--accent-primary); color: var(--accent-primary);">
+                                    <div class="point-label">🐱 "gato persa"</div>
+                                </div>
+                                <div class="vector-point" style="left: 78%; top: 30%; background: var(--accent-primary); color: var(--accent-primary);">
+                                    <div class="point-label">🐶 "perro labrador"</div>
+                                </div>
+                                <div class="vector-point" style="left: 66%; top: 35%; background: var(--accent-primary); color: var(--accent-primary);">
+                                    <div class="point-label">🐰 "conejo blanco"</div>
+                                </div>
+
+                                <!-- Points — Tech cluster -->
+                                <div class="vector-point" style="left: 18%; top: 55%; background: var(--accent-secondary); color: var(--accent-secondary);">
+                                    <div class="point-label">💻 "Python"</div>
+                                </div>
+                                <div class="vector-point" style="left: 25%; top: 68%; background: var(--accent-secondary); color: var(--accent-secondary);">
+                                    <div class="point-label">🔧 "JavaScript"</div>
+                                </div>
+                                <div class="vector-point" style="left: 12%; top: 72%; background: var(--accent-secondary); color: var(--accent-secondary);">
+                                    <div class="point-label">🗄️ "PostgreSQL"</div>
+                                </div>
+
+                                <!-- Points — Food cluster -->
+                                <div class="vector-point" style="left: 68%; top: 68%; background: var(--accent-tertiary); color: var(--accent-tertiary);">
+                                    <div class="point-label">🍕 "pizza"</div>
+                                </div>
+                                <div class="vector-point" style="left: 75%; top: 75%; background: var(--accent-tertiary); color: var(--accent-tertiary);">
+                                    <div class="point-label">🍔 "hamburguesa"</div>
+                                </div>
+                                <div class="vector-point" style="left: 62%; top: 78%; background: var(--accent-tertiary); color: var(--accent-tertiary);">
+                                    <div class="point-label">🌮 "tacos"</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.8rem;">
+                                Conceptos similares se agrupan; conceptos diferentes están lejos
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 5: MÉTRICAS DE DISTANCIA
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Métricas">
+            <div class="slide-content">
+                <span class="section-badge">📐 Métricas</span>
+                <h2 class="slide-title">Métricas de <span class="gradient-text">Distancia</span></h2>
+                <p class="slide-subtitle">
+                    Para encontrar vectores "similares", necesitamos medir la distancia entre ellos.
+                    Hay tres métricas principales que pgvector soporta nativamente.
+                </p>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">📏</div>
+                        <div class="metric-name">Distancia Coseno</div>
+                        <div class="metric-formula">1 - cos(θ)</div>
+                        <div class="metric-desc">
+                            Mide el ángulo entre dos vectores. <strong>Ignora la magnitud</strong>, solo se fija en la dirección.
+                            La más popular para texto.
+                        </div>
+                        <div style="margin-top: 0.8rem; font-size: 0.72rem; color: var(--accent-primary);">
+                            Operador pgvector: <code style="font-family: var(--font-mono);">&lt;=&gt;</code>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📐</div>
+                        <div class="metric-name">Distancia Euclidiana</div>
+                        <div class="metric-formula">√Σ(aᵢ - bᵢ)²</div>
+                        <div class="metric-desc">
+                            Mide la distancia "en línea recta" entre dos puntos en el espacio.
+                            <strong>Considera la magnitud</strong> de los vectores.
+                        </div>
+                        <div style="margin-top: 0.8rem; font-size: 0.72rem; color: var(--accent-secondary);">
+                            Operador pgvector: <code style="font-family: var(--font-mono);">&lt;-&gt;</code>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">✖️</div>
+                        <div class="metric-name">Producto Interno</div>
+                        <div class="metric-formula">Σ(aᵢ × bᵢ)</div>
+                        <div class="metric-desc">
+                            Combina dirección y magnitud. Valores más altos = más similares.
+                            Útil cuando la magnitud importa (popularidad).
+                        </div>
+                        <div style="margin-top: 0.8rem; font-size: 0.72rem; color: var(--accent-pink);">
+                            Operador pgvector: <code style="font-family: var(--font-mono);">&lt;#&gt;</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1.2rem; text-align: center;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        💡 <strong style="color: var(--text-primary);">¿Cuál usar?</strong>
+                        Para textos con embeddings de OpenAI, la <strong style="color: var(--accent-primary);">similitud coseno</strong>
+                        es la opción recomendada. Los vectores ya están normalizados.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 6: CASOS DE USO
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Casos de Uso">
+            <div class="slide-content">
+                <span class="section-badge">🎯 Aplicaciones</span>
+                <h2 class="slide-title">¿Para qué <span class="gradient-text">sirven</span>?</h2>
+                <p class="slide-subtitle">
+                    Las bases de datos vectorizadas son la infraestructura clave detrás de muchas
+                    aplicaciones modernas de IA y búsqueda inteligente.
+                </p>
+
+                <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="card">
+                        <div class="icon-badge icon-badge--violet">🤖</div>
+                        <h3>RAG (Chatbots con IA)</h3>
+                        <p>Chatbots que responden con información de documentos propios. El LLM usa los documentos recuperados como contexto.</p>
+                    </div>
+                    <div class="card card--emerald">
+                        <div class="icon-badge icon-badge--green">🔍</div>
+                        <h3>Búsqueda Semántica</h3>
+                        <p>Buscar productos, artículos o código por significado, no por palabras exactas. "zapato deportivo" → Nike, Adidas...</p>
+                    </div>
+                    <div class="card card--warm">
+                        <div class="icon-badge icon-badge--coral">🎯</div>
+                        <h3>Sistemas de Recomendación</h3>
+                        <p>Recomendar contenido similar: "Te gustó X, te puede gustar Y" basado en cercanía vectorial.</p>
+                    </div>
+                    <div class="card card--ocean">
+                        <div class="icon-badge icon-badge--blue">🛡️</div>
+                        <h3>Detección de Anomalías</h3>
+                        <p>Identificar fraude, spam o comportamiento inusual como puntos lejanos en el espacio vectorial.</p>
+                    </div>
+                    <div class="card card--fire">
+                        <div class="icon-badge icon-badge--orange">🖼️</div>
+                        <h3>Búsqueda de Imágenes</h3>
+                        <p>Encontrar imágenes similares o buscar imágenes con texto: "perro jugando en la playa".</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon-badge icon-badge--pink">🧬</div>
+                        <h3>Bioinformática</h3>
+                        <p>Comparar secuencias genéticas, estructuras moleculares y encontrar proteínas similares.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 7: PGVECTOR
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="pgvector">
+            <div class="slide-content">
+                <span class="section-badge">🐘 PostgreSQL</span>
+                <h2 class="slide-title"><span class="gradient-text">pgvector</span>: Vectores en PostgreSQL</h2>
+                <p class="slide-subtitle">
+                    pgvector es una extensión que agrega soporte nativo para vectores a PostgreSQL.
+                    No necesitas otra base de datos — tu PostgreSQL ya puede ser vectorial.
+                </p>
+
+                <div class="two-cols">
+                    <div>
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">SQL — Crear tabla con vectores</span>
+                            </div>
+                            <pre><code><span class="cm">-- 1. Habilitar la extensión</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> <span class="fn">vector</span>;
+
+<span class="cm">-- 2. Crear tabla con columna vector</span>
+<span class="kw">CREATE TABLE</span> <span class="fn">documentos</span> (
+    id      <span class="nb">SERIAL PRIMARY KEY</span>,
+    texto   <span class="nb">TEXT</span>,
+    metadata <span class="nb">JSONB</span>,
+    embedding <span class="fn">vector</span>(<span class="var">1536</span>)  <span class="cm">-- ← tipo vector!</span>
+);
+
+<span class="cm">-- 3. Crear índice para búsquedas rápidas</span>
+<span class="kw">CREATE INDEX ON</span> <span class="fn">documentos</span>
+<span class="kw">USING</span> <span class="fn">ivfflat</span> (embedding <span class="fn">vector_cosine_ops</span>)
+<span class="kw">WITH</span> (lists = <span class="var">100</span>);
+
+<span class="cm">-- 4. Buscar los 5 más similares</span>
+<span class="kw">SELECT</span> texto, <span class="var">1</span> - (embedding <span class="op">&lt;=&gt;</span> <span class="st">'[0.1, 0.2, ...]'</span>)
+    <span class="kw">AS</span> similitud
+<span class="kw">FROM</span> documentos
+<span class="kw">ORDER BY</span> embedding <span class="op">&lt;=&gt;</span> <span class="st">'[0.1, 0.2, ...]'</span>
+<span class="kw">LIMIT</span> <span class="var">5</span>;</code></pre>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="cards-grid" style="grid-template-columns: 1fr;">
+                            <div class="card">
+                                <div class="icon-badge icon-badge--green">✅</div>
+                                <h3>¿Por qué pgvector?</h3>
+                                <p>No necesitas infraestructura extra. Si ya usas PostgreSQL, solo agregas la extensión. SQL + vectores en un solo lugar.</p>
+                            </div>
+                            <div class="card card--emerald">
+                                <div class="icon-badge icon-badge--cyan">⚡</div>
+                                <h3>Índices Optimizados</h3>
+                                <p><strong>IVFFlat</strong>: rápido, buen recall. <strong>HNSW</strong>: mayor recall, más memoria. Ambos escalan a millones de vectores.</p>
+                            </div>
+                            <div class="card card--warm">
+                                <div class="icon-badge icon-badge--gold">🔗</div>
+                                <h3>Filtrado Híbrido</h3>
+                                <p>Combina búsqueda vectorial con filtros SQL tradicionales: <code>WHERE categoria = 'tech' ORDER BY embedding &lt;=&gt; query</code></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 8: ARQUITECTURA
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Arquitectura">
+            <div class="slide-content">
+                <span class="section-badge">🏗️ Arquitectura</span>
+                <h2 class="slide-title">Flujo de una <span class="gradient-text">Base de Datos Vectorizada</span></h2>
+
+                <div class="arch-diagram">
+                    <h3>📥 Flujo de Ingesta (guardar documentos)</h3>
+                    <div class="arch-flow">
+                        <div class="arch-node arch-node--input">
+                            <span class="node-icon">📄</span>
+                            <span class="node-label">Documentos</span>
+                            <span class="node-desc">PDF, TXT, HTML...</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--process">
+                            <span class="node-icon">✂️</span>
+                            <span class="node-label">Chunking</span>
+                            <span class="node-desc">Dividir en fragmentos</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--model">
+                            <span class="node-icon">🧮</span>
+                            <span class="node-label">Embeddings</span>
+                            <span class="node-desc">OpenAI / Cohere</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--storage">
+                            <span class="node-icon">🗄️</span>
+                            <span class="node-label">pgvector</span>
+                            <span class="node-desc">PostgreSQL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arch-diagram">
+                    <h3>🔍 Flujo de Búsqueda (consultar)</h3>
+                    <div class="arch-flow">
+                        <div class="arch-node arch-node--input">
+                            <span class="node-icon">❓</span>
+                            <span class="node-label">Pregunta</span>
+                            <span class="node-desc">"¿Qué es Docker?"</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--model">
+                            <span class="node-icon">🧮</span>
+                            <span class="node-label">Embedding</span>
+                            <span class="node-desc">Query → vector</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--search">
+                            <span class="node-icon">🔍</span>
+                            <span class="node-label">Similitud</span>
+                            <span class="node-desc">coseno &lt;=&gt;</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--output">
+                            <span class="node-icon">📑</span>
+                            <span class="node-label">Top-K</span>
+                            <span class="node-desc">Docs relevantes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <span class="flow-step-num" style="background: var(--gradient-primary);">1</span>
+                        <div class="flow-step-text"><strong>Chunks</strong><p>Dividir documentos largos en fragmentos de ~500 tokens</p></div>
+                    </div>
+                    <div class="flow-step">
+                        <span class="flow-step-num" style="background: var(--gradient-cool);">2</span>
+                        <div class="flow-step-text"><strong>Vectorizar</strong><p>Cada chunk se convierte en un vector de 1536 dimensiones</p></div>
+                    </div>
+                    <div class="flow-step">
+                        <span class="flow-step-num" style="background: var(--gradient-emerald);">3</span>
+                        <div class="flow-step-text"><strong>Indexar</strong><p>IVFFlat o HNSW para búsquedas en milisegundos</p></div>
+                    </div>
+                    <div class="flow-step">
+                        <span class="flow-step-num" style="background: var(--gradient-warm);">4</span>
+                        <div class="flow-step-text"><strong>Buscar</strong><p>Encontrar los K vectores más cercanos a la consulta</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 9: COMPARATIVA
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Comparativa">
+            <div class="slide-content">
+                <span class="section-badge">📊 Comparativa</span>
+                <h2 class="slide-title">Opciones de <span class="gradient-text">Bases de Datos Vectorizadas</span></h2>
+
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>Característica</th>
+                            <th>🐘 pgvector</th>
+                            <th>🌲 Pinecone</th>
+                            <th>🔷 Weaviate</th>
+                            <th>🦅 Milvus</th>
+                            <th>🔶 Chroma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Tipo</strong></td><td>Extensión SQL</td><td>Cloud nativo</td><td>Self-hosted / Cloud</td><td>Self-hosted</td><td>In-memory / Local</td></tr>
+                        <tr><td><strong>Modelo</strong></td><td>Open source</td><td>SaaS (pago)</td><td>Open source</td><td>Open source</td><td>Open source</td></tr>
+                        <tr><td><strong>Escalabilidad</strong></td><td>Millones</td><td>Billones</td><td>Billones</td><td>Billones</td><td>Miles</td></tr>
+                        <tr><td><strong>Filtrado SQL</strong></td><td>✅ Nativo</td><td>Metadata only</td><td>GraphQL</td><td>Expresiones</td><td>Metadata</td></tr>
+                        <tr><td><strong>Infraestructura extra</strong></td><td>❌ Usa tu PG</td><td>✅ Servicio aparte</td><td>✅ Cluster aparte</td><td>✅ Cluster aparte</td><td>❌ Embebido</td></tr>
+                        <tr><td><strong>Mejor para</strong></td><td>Ya usas PG</td><td>Producción masiva</td><td>Multimodal</td><td>Gran escala</td><td>Prototipos</td></tr>
+                    </tbody>
+                </table>
+
+                <div style="background: var(--bg-card); border: 2px solid var(--border-glow); border-radius: 14px; padding: 1.5rem; margin-top: 1rem;">
+                    <h3 style="text-align: center; margin-bottom: 1rem; font-size: 1.05rem;">🐘 ¿Por qué elegir pgvector?</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="f-icon">💰</span>
+                            <span><strong>Sin costo extra:</strong> Si ya tienes PostgreSQL, solo agregas la extensión. No pagas por otro servicio.</span>
+                        </li>
+                        <li>
+                            <span class="f-icon">🔗</span>
+                            <span><strong>SQL + Vectores:</strong> Combina queries tradicionales con búsqueda semántica en una sola consulta.</span>
+                        </li>
+                        <li>
+                            <span class="f-icon">🏗️</span>
+                            <span><strong>ACID & Backups:</strong> Hereda toda la robustez de PostgreSQL: transacciones, replicación, pg_dump.</span>
+                        </li>
+                        <li>
+                            <span class="f-icon">🚀</span>
+                            <span><strong>Simplicidad:</strong> Un solo servicio para datos relacionales + vectoriales. Menos infraestructura = menos problemas.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 10: DOCKER SETUP
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Docker Setup">
+            <div class="slide-content">
+                <span class="section-badge">🐳 Setup</span>
+                <h2 class="slide-title">Configurar <span class="gradient-text">pgvector</span> con Docker</h2>
+                <p class="slide-subtitle">
+                    En menos de 30 segundos tienes PostgreSQL con pgvector corriendo localmente.
+                </p>
+
+                <div class="tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="tab-docker">🐳 Docker Run</button>
+                        <button class="tab-btn" data-tab="tab-compose">📄 Docker Compose</button>
+                        <button class="tab-btn" data-tab="tab-verify">✅ Verificar</button>
+                    </div>
+
+                    <div class="tab-content active" id="tab-docker">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Terminal</span>
+                            </div>
+                            <pre><code><span class="cm"># Levantar PostgreSQL 16 con pgvector</span>
+docker run --name pgvector -d \
+  -e <span class="nb">POSTGRES_PASSWORD</span>=<span class="st">postgres</span> \
+  -e <span class="nb">POSTGRES_DB</span>=<span class="st">vectordb</span> \
+  -p <span class="var">5432</span>:<span class="var">5432</span> \
+  <span class="fn">pgvector/pgvector:pg16</span>
+
+<span class="cm"># Verificar que está corriendo</span>
+docker <span class="fn">ps</span>
+
+<span class="cm"># Conexión:</span>
+<span class="cm"># postgresql://postgres:postgres@localhost:5432/vectordb</span></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-compose">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">YAML — docker-compose.yml</span>
+                            </div>
+                            <pre><code><span class="nb">services</span>:
+  <span class="fn">pgvector</span>:
+    image: <span class="st">pgvector/pgvector:pg16</span>
+    container_name: <span class="st">pgvector</span>
+    environment:
+      <span class="nb">POSTGRES_PASSWORD</span>: <span class="st">postgres</span>
+      <span class="nb">POSTGRES_DB</span>: <span class="st">vectordb</span>
+    ports:
+      - <span class="st">"5432:5432"</span>
+    volumes:
+      - <span class="st">pgdata:/var/lib/postgresql/data</span>
+
+<span class="nb">volumes</span>:
+  <span class="fn">pgdata</span>:</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-verify">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Terminal — Verificar instalación</span>
+                            </div>
+                            <pre><code><span class="cm"># Conectar y verificar extensión</span>
+docker exec -it pgvector psql -U postgres -d vectordb
+
+<span class="cm"># Dentro de psql:</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> <span class="fn">vector</span>;
+
+<span class="cm"># Verificar versión</span>
+<span class="kw">SELECT</span> <span class="fn">extversion</span>
+<span class="kw">FROM</span> pg_extension
+<span class="kw">WHERE</span> extname = <span class="st">'vector'</span>;
+
+<span class="cm"># → 0.7.4 (o superior)</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem; display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.4rem; margin-bottom: 0.3rem;">🐘</div>
+                        <div style="font-size: 0.75rem; font-weight: 600;">PostgreSQL 16</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Base sólida</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.4rem; margin-bottom: 0.3rem;">📦</div>
+                        <div style="font-size: 0.75rem; font-weight: 600;">pgvector 0.7+</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">HNSW + IVFFlat</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.4rem; margin-bottom: 0.3rem;">🐍</div>
+                        <div style="font-size: 0.75rem; font-weight: 600;">psycopg 3</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Driver moderno</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.4rem; margin-bottom: 0.3rem;">🔗</div>
+                        <div style="font-size: 0.75rem; font-weight: 600;">langchain-postgres</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Integración oficial</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 11: LANGCHAIN + PGVECTOR
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="LangChain + pgvector">
+            <div class="slide-content">
+                <span class="section-badge">🔗 Integración</span>
+                <h2 class="slide-title">LangChain + <span class="gradient-text">pgvector</span></h2>
+
+                <div class="tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="tab-connect">🔌 Conectar</button>
+                        <button class="tab-btn" data-tab="tab-ingest">📥 Ingestar</button>
+                        <button class="tab-btn" data-tab="tab-search">🔍 Buscar</button>
+                    </div>
+
+                    <div class="tab-content active" id="tab-connect">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Python — Conexión al VectorStore</span>
+                            </div>
+                            <pre><code><span class="kw">from</span> <span class="nb">langchain_openai</span> <span class="kw">import</span> <span class="fn">OpenAIEmbeddings</span>
+<span class="kw">from</span> <span class="nb">langchain_postgres</span> <span class="kw">import</span> <span class="fn">PGVector</span>
+
+<span class="cm"># 1. Modelo de embeddings</span>
+embeddings = <span class="fn">OpenAIEmbeddings</span>(model=<span class="st">"text-embedding-3-small"</span>)
+
+<span class="cm"># 2. Conexión a PostgreSQL con pgvector</span>
+vectorstore = <span class="fn">PGVector</span>(
+    embeddings=embeddings,
+    collection_name=<span class="st">"mi_coleccion"</span>,
+    connection=<span class="st">"postgresql+psycopg://postgres:postgres@localhost:5432/vectordb"</span>,
+    use_jsonb=<span class="var">True</span>,
+)
+
+<span class="fn">print</span>(<span class="st">"✅ Conectado a pgvector!"</span>)</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-ingest">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Python — Insertar documentos</span>
+                            </div>
+                            <pre><code><span class="kw">from</span> <span class="nb">langchain_core.documents</span> <span class="kw">import</span> <span class="fn">Document</span>
+
+<span class="cm"># Documentos con texto + metadata</span>
+docs = [
+    <span class="fn">Document</span>(
+        page_content=<span class="st">"Python es un lenguaje de programación..."</span>,
+        metadata={<span class="st">"categoria"</span>: <span class="st">"lenguajes"</span>, <span class="st">"año"</span>: <span class="var">2024</span>}
+    ),
+    <span class="fn">Document</span>(
+        page_content=<span class="st">"FastAPI es un framework moderno..."</span>,
+        metadata={<span class="st">"categoria"</span>: <span class="st">"frameworks"</span>, <span class="st">"año"</span>: <span class="var">2024</span>}
+    ),
+]
+
+<span class="cm"># Insertar → vectoriza automáticamente</span>
+ids = vectorstore.<span class="fn">add_documents</span>(docs)
+<span class="fn">print</span>(<span class="st">f"Insertados: {len(ids)} docs"</span>)</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-search">
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Python — Búsqueda semántica</span>
+                            </div>
+                            <pre><code><span class="cm"># Búsqueda por similitud</span>
+resultados = vectorstore.<span class="fn">similarity_search</span>(
+    <span class="st">"frameworks para APIs web"</span>,
+    k=<span class="var">3</span>  <span class="cm"># Top 3 resultados</span>
+)
+
+<span class="kw">for</span> doc <span class="kw">in</span> resultados:
+    <span class="fn">print</span>(doc.page_content[:<span class="var">80</span>])
+
+<span class="cm"># Búsqueda con scores</span>
+resultados = vectorstore.<span class="fn">similarity_search_with_score</span>(
+    <span class="st">"frameworks para APIs web"</span>, k=<span class="var">3</span>
+)
+<span class="kw">for</span> doc, score <span class="kw">in</span> resultados:
+    <span class="fn">print</span>(<span class="st">f"[{score:.4f}] {doc.page_content[:60]}"</span>)
+
+<span class="cm"># Búsqueda con filtro de metadata</span>
+resultados = vectorstore.<span class="fn">similarity_search</span>(
+    <span class="st">"herramientas IA"</span>, k=<span class="var">3</span>,
+    filter={<span class="st">"categoria"</span>: <span class="st">"ia"</span>}
+)</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 12: RAG COMPLETO
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="RAG + LangChain">
+            <div class="slide-content">
+                <span class="section-badge">🤖 RAG</span>
+                <h2 class="slide-title">RAG: <span class="gradient-text">Retrieval-Augmented Generation</span></h2>
+                <p class="slide-subtitle">
+                    La combinación definitiva: buscar en tu base de datos vectorizada
+                    y usar los documentos encontrados como contexto para el LLM.
+                </p>
+
+                <div class="arch-diagram">
+                    <h3>🔄 Flujo RAG Completo</h3>
+                    <div class="arch-flow">
+                        <div class="arch-node arch-node--input">
+                            <span class="node-icon">👤</span>
+                            <span class="node-label">Pregunta</span>
+                            <span class="node-desc">"¿Qué es Docker?"</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--search">
+                            <span class="node-icon">🔍</span>
+                            <span class="node-label">Retriever</span>
+                            <span class="node-desc">pgvector search</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--process">
+                            <span class="node-icon">📝</span>
+                            <span class="node-label">Prompt</span>
+                            <span class="node-desc">Pregunta + Contexto</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--model">
+                            <span class="node-icon">🤖</span>
+                            <span class="node-label">LLM</span>
+                            <span class="node-desc">GPT-4o-mini</span>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-node arch-node--output">
+                            <span class="node-icon">💬</span>
+                            <span class="node-label">Respuesta</span>
+                            <span class="node-desc">Basada en docs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-dots"><span></span><span></span><span></span></div>
+                        <span class="code-lang">Python — Cadena RAG con LCEL</span>
+                    </div>
+                    <pre><code><span class="kw">from</span> <span class="nb">langchain_core.prompts</span> <span class="kw">import</span> <span class="fn">ChatPromptTemplate</span>
+<span class="kw">from</span> <span class="nb">langchain_core.runnables</span> <span class="kw">import</span> <span class="fn">RunnablePassthrough</span>
+
+<span class="cm"># Retriever desde pgvector</span>
+retriever = vectorstore.<span class="fn">as_retriever</span>(search_kwargs={<span class="st">"k"</span>: <span class="var">3</span>})
+
+<span class="cm"># Prompt con contexto</span>
+prompt = <span class="fn">ChatPromptTemplate</span>.from_messages([
+    (<span class="st">"system"</span>, <span class="st">"Responde basándote en:\n{contexto}"</span>),
+    (<span class="st">"human"</span>, <span class="st">"{pregunta}"</span>)
+])
+
+<span class="cm"># Cadena RAG completa</span>
+cadena = (
+    {<span class="st">"contexto"</span>: retriever | format_docs, <span class="st">"pregunta"</span>: <span class="fn">RunnablePassthrough</span>()}
+    <span class="op">|</span> prompt <span class="op">|</span> modelo <span class="op">|</span> <span class="fn">StrOutputParser</span>()
+)
+
+respuesta = cadena.<span class="fn">invoke</span>(<span class="st">"¿Qué es Docker?"</span>)
+<span class="cm"># → Respuesta basada en TUS documentos 🎉</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 13: RAG + MEMORIA
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="RAG + Memoria">
+            <div class="slide-content">
+                <span class="section-badge">🧠 Avanzado</span>
+                <h2 class="slide-title">RAG con <span class="gradient-text">Memoria Conversacional</span></h2>
+                <p class="slide-subtitle">
+                    Combina búsqueda vectorial + memoria con LangGraph.
+                    El agente recuerda la conversación Y busca en la base de datos.
+                </p>
+
+                <div class="two-cols">
+                    <div>
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">Python — RAG + Memoria (LangGraph)</span>
+                            </div>
+                            <pre><code><span class="kw">from</span> <span class="nb">langgraph.graph</span> <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> <span class="nb">langgraph.checkpoint.memory</span> <span class="kw">import</span> <span class="fn">MemorySaver</span>
+
+<span class="cm"># Estado con mensajes + contexto</span>
+<span class="kw">class</span> <span class="fn">EstadoRAG</span>(TypedDict):
+    messages: Annotated[<span class="nb">list</span>, add_messages]
+    contexto: <span class="nb">str</span>
+
+<span class="cm"># Nodo 1: Buscar documentos</span>
+<span class="kw">def</span> <span class="fn">recuperar</span>(estado):
+    docs = retriever.<span class="fn">invoke</span>(
+        estado[<span class="st">"messages"</span>][-<span class="var">1</span>].content
+    )
+    <span class="kw">return</span> {<span class="st">"contexto"</span>: format_docs(docs)}
+
+<span class="cm"># Nodo 2: Responder con contexto</span>
+<span class="kw">def</span> <span class="fn">responder</span>(estado):
+    respuesta = modelo.<span class="fn">invoke</span>(
+        system + estado[<span class="st">"messages"</span>]
+    )
+    <span class="kw">return</span> {<span class="st">"messages"</span>: [respuesta]}
+
+<span class="cm"># Compilar con memoria</span>
+app = grafo.<span class="fn">compile</span>(
+    checkpointer=<span class="fn">MemorySaver</span>()
+)</code></pre>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="cards-grid" style="grid-template-columns: 1fr;">
+                            <div class="card">
+                                <div class="icon-badge icon-badge--violet">🔍</div>
+                                <h3>Retriever</h3>
+                                <p>Busca en pgvector los documentos más relevantes para cada pregunta del usuario.</p>
+                            </div>
+                            <div class="card card--emerald">
+                                <div class="icon-badge icon-badge--green">🧠</div>
+                                <h3>Memoria</h3>
+                                <p>MemorySaver persiste el historial de mensajes. El agente recuerda toda la conversación.</p>
+                            </div>
+                            <div class="card card--warm">
+                                <div class="icon-badge icon-badge--coral">💬</div>
+                                <h3>Seguimiento</h3>
+                                <p>El usuario puede hacer preguntas de seguimiento: "¿Y cómo se conecta eso con lo anterior?"</p>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
+                            <p style="font-size: 0.82rem; color: var(--text-secondary);">
+                                <strong style="color: var(--accent-primary);">💡 thread_id</strong> aísla conversaciones.
+                                Igual que un chat individual: cada thread tiene su propia memoria.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 14: ÍNDICES
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Índices">
+            <div class="slide-content">
+                <span class="section-badge">⚡ Performance</span>
+                <h2 class="slide-title">Índices para <span class="gradient-text">Búsqueda Rápida</span></h2>
+                <p class="slide-subtitle">
+                    Sin índices, pgvector hace búsqueda lineal (escanea todos los vectores).
+                    Con índices, las búsquedas son sub-lineales y escalan a millones de registros.
+                </p>
+
+                <div class="two-cols">
+                    <div class="card" style="border-color: rgba(0,230,184,0.3);">
+                        <div class="icon-badge icon-badge--green" style="width: 56px; height: 56px; font-size: 1.5rem;">📊</div>
+                        <h3 style="font-size: 1.2rem; margin-bottom: 0.6rem;">IVFFlat</h3>
+                        <p style="margin-bottom: 1rem;">Inverted File Index con cuantización plana. Divide el espacio en clusters (listas) y busca solo en los más cercanos.</p>
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">SQL</span>
+                            </div>
+                            <pre><code><span class="kw">CREATE INDEX ON</span> documentos
+<span class="kw">USING</span> <span class="fn">ivfflat</span> (embedding <span class="fn">vector_cosine_ops</span>)
+<span class="kw">WITH</span> (lists = <span class="var">100</span>);
+
+<span class="cm">-- lists ≈ √N (N = total de filas)</span>
+<span class="cm">-- Más listas = más rápido pero menos recall</span></code></pre>
+                        </div>
+                        <ul style="list-style: none; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.8rem;">
+                            <li>✅ Creación rápida del índice</li>
+                            <li>✅ Menor uso de memoria</li>
+                            <li>⚠️ Necesita datos para entrenar</li>
+                        </ul>
+                    </div>
+                    <div class="card" style="border-color: rgba(124,106,255,0.3);">
+                        <div class="icon-badge icon-badge--violet" style="width: 56px; height: 56px; font-size: 1.5rem;">🌐</div>
+                        <h3 style="font-size: 1.2rem; margin-bottom: 0.6rem;">HNSW</h3>
+                        <p style="margin-bottom: 1rem;">Hierarchical Navigable Small World. Construye un grafo multicapa donde cada nodo conecta a sus vecinos más cercanos.</p>
+                        <div class="code-container">
+                            <div class="code-header">
+                                <div class="code-dots"><span></span><span></span><span></span></div>
+                                <span class="code-lang">SQL</span>
+                            </div>
+                            <pre><code><span class="kw">CREATE INDEX ON</span> documentos
+<span class="kw">USING</span> <span class="fn">hnsw</span> (embedding <span class="fn">vector_cosine_ops</span>)
+<span class="kw">WITH</span> (m = <span class="var">16</span>, ef_construction = <span class="var">64</span>);
+
+<span class="cm">-- m = conexiones por nodo (más = mejor recall)</span>
+<span class="cm">-- ef_construction = calidad del índice</span></code></pre>
+                        </div>
+                        <ul style="list-style: none; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.8rem;">
+                            <li>✅ Mayor recall que IVFFlat</li>
+                            <li>✅ No necesita entrenar</li>
+                            <li>⚠️ Más memoria y tiempo de creación</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 15: RESUMEN
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide" data-title="Resumen">
+            <div class="slide-content">
+                <span class="section-badge">📋 Resumen</span>
+                <h2 class="slide-title">Todo lo que <span class="gradient-text">aprendimos</span></h2>
+
+                <div class="layers-stack" style="max-width: 700px;">
+                    <div class="layer layer--1">
+                        <div class="layer-title">🔢 Embeddings</div>
+                        <div class="layer-desc">Representaciones vectoriales que capturan el significado semántico del texto</div>
+                    </div>
+                    <div class="layer layer--2">
+                        <div class="layer-title">🗄️ Bases de Datos Vectorizadas</div>
+                        <div class="layer-desc">Almacenan y buscan vectores por similitud — no por coincidencia exacta de texto</div>
+                    </div>
+                    <div class="layer layer--3">
+                        <div class="layer-title">🐘 pgvector + PostgreSQL</div>
+                        <div class="layer-desc">Extensión que agrega soporte nativo para vectores a tu PostgreSQL existente</div>
+                    </div>
+                    <div class="layer layer--4">
+                        <div class="layer-title">📐 Métricas: Coseno, Euclidiana, Producto Interno</div>
+                        <div class="layer-desc">Diferentes formas de medir la "cercanía" entre vectores en el espacio</div>
+                    </div>
+                    <div class="layer layer--5">
+                        <div class="layer-title">🤖 RAG + Memoria con LangChain</div>
+                        <div class="layer-desc">Retrieval-Augmented Generation: buscar documentos + generar respuestas contextualizadas</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem 1.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.3rem;">📄</div>
+                        <div style="font-size: 0.78rem; font-weight: 600; color: var(--accent-primary);">04_ejemplo_vectordb.py</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Ejemplo completo</div>
+                    </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem 1.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.3rem;">🐘</div>
+                        <div style="font-size: 0.78rem; font-weight: 600; color: var(--accent-secondary);">pgvector/pgvector</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Docker image</div>
+                    </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem 1.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.3rem;">📦</div>
+                        <div style="font-size: 0.78rem; font-weight: 600; color: var(--accent-gold);">langchain-postgres</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Integración oficial</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SLIDE 16: FIN
+             ═══════════════════════════════════════════════════ -->
+        <div class="slide hero-slide" data-title="Fin">
+            <div class="slide-content">
+                <div class="hero-icon">🎉</div>
+                <h2 class="slide-title">¡<span class="gradient-text">Gracias</span>!</h2>
+                <p class="slide-subtitle" style="margin: 0 auto 2rem;">
+                    Ahora puedes almacenar, buscar y generar con inteligencia semántica.<br>
+                    PostgreSQL + pgvector + LangChain = el stack completo para IA.
+                </p>
+
+                <div style="margin-bottom: 2rem; text-align: center;">
+                    <a href="presentacion.html" class="btn btn-primary" style="font-size: 1rem; padding: 1rem 2rem; background: linear-gradient(135deg, #7c6aff 0%, #e879f9 100%); box-shadow: 0 4px 20px rgba(124,106,255,0.3);">
+                        ← Volver a LangChain & LangGraph
+                    </a>
+                </div>
+
+                <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
+                        <a href="https://github.com/pgvector/pgvector" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Docs pgvector</a>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔗</div>
+                        <a href="https://python.langchain.com" target="_blank" style="color: var(--accent-secondary); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Docs LangChain</a>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">💻</div>
+                        <span style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 600;">04_ejemplo_vectordb.py</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🐘</div>
+                        <span style="color: var(--accent-pink); font-size: 0.85rem; font-weight: 600;">PostgreSQL + pgvector</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /slides-wrapper -->
+
+    <!-- ═══════════════════════════════════════════════════
+         NAVIGATION CONTROLS
+         ═══════════════════════════════════════════════════ -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="btnPrev" onclick="prevSlide()" title="Anterior (←)">←</button>
+        <div class="slide-counter">
+            <span class="current" id="currentSlide">1</span> / <span id="totalSlides">16</span>
+        </div>
+        <button class="nav-btn" id="btnNext" onclick="nextSlide()" title="Siguiente (→)">→</button>
+    </div>
+
+    <!-- Slide dots -->
+    <div class="slide-dots" id="slideDots"></div>
+
+    <!-- Keyboard hints -->
+    <div class="key-hints">
+        <span class="key">←</span> <span class="key">→</span> para navegar
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         JAVASCRIPT
+         ═══════════════════════════════════════════════════ -->
+    <script>
+        // ── State ────────────────────────────────────────────
+        let currentIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const progressBar = document.getElementById('progressBar');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const currentSlideEl = document.getElementById('currentSlide');
+        const totalSlidesEl = document.getElementById('totalSlides');
+        const dotsContainer = document.getElementById('slideDots');
+
+        totalSlidesEl.textContent = totalSlides;
+
+        // ── Generate dots ────────────────────────────────────
+        slides.forEach((slide, i) => {
+            const dot = document.createElement('div');
+            dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+            dot.onclick = () => goToSlide(i);
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'dot-tooltip';
+            tooltip.textContent = slide.dataset.title || `Slide ${i + 1}`;
+            dot.appendChild(tooltip);
+
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = document.querySelectorAll('.slide-dot');
+
+        // ── Navigation functions ─────────────────────────────
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides || index === currentIndex) return;
+
+            const direction = index > currentIndex ? 1 : -1;
+            const currentSlide = slides[currentIndex];
+            const nextSlideEl = slides[index];
+
+            currentSlide.classList.remove('active');
+            if (direction > 0) {
+                currentSlide.classList.add('exit-left');
+            }
+            currentSlide.style.transform = direction > 0 ? 'translateX(-60px)' : 'translateX(60px)';
+
+            nextSlideEl.style.transform = direction > 0 ? 'translateX(60px)' : 'translateX(-60px)';
+            nextSlideEl.offsetHeight;
+            nextSlideEl.classList.add('active');
+            nextSlideEl.classList.remove('exit-left');
+            nextSlideEl.style.transform = '';
+
+            setTimeout(() => {
+                currentSlide.classList.remove('exit-left');
+                currentSlide.style.transform = '';
+            }, 600);
+
+            nextSlideEl.scrollTop = 0;
+            currentIndex = index;
+            updateUI();
+        }
+
+        function nextSlide() { goToSlide(currentIndex + 1); }
+        function prevSlide() { goToSlide(currentIndex - 1); }
+
+        function updateUI() {
+            currentSlideEl.textContent = currentIndex + 1;
+            btnPrev.disabled = currentIndex === 0;
+            btnNext.disabled = currentIndex === totalSlides - 1;
+            progressBar.style.width = `${((currentIndex + 1) / totalSlides) * 100}%`;
+
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentIndex);
+            });
+        }
+
+        // ── Keyboard navigation ──────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                goToSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                goToSlide(totalSlides - 1);
+            }
+        });
+
+        // ── Touch/Swipe support ──────────────────────────────
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                diff > 0 ? nextSlide() : prevSlide();
+            }
+        }, { passive: true });
+
+        // ── Tabs ─────────────────────────────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabGroup = btn.closest('.tabs');
+                tabGroup.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                tabGroup.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ── Initialize ──────────────────────────────────────
+        updateUI();
+    </script>
+</body>
+</html>
