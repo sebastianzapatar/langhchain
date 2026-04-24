@@ -86,6 +86,8 @@ REGLAS IMPORTANTES:
 3. Recuerda el contexto de la conversación (memoria). Si el usuario hace referencia a algo dicho antes, usa el historial.
 4. Responde SIEMPRE en español claro, profesional y estructurado.
 5. Si la herramienta de búsqueda no devuelve información útil, indícale al usuario que no está en sus documentos.
+6. RESPONDE ÚNICA Y EXCLUSIVAMENTE con la información obtenida de la herramienta 'buscar_en_documentos'.
+7. Si te preguntan algo que NO está en los documentos recuperados, NO inventes la respuesta ni uses tu conocimiento general. Simplemente responde que no tienes esa información en la base de datos de documentos.
 """)
         
         respuesta = modelo_con_tools.invoke([system_prompt] + mensajes_historial)
