@@ -1,0 +1,1 @@
+LangChain permite crear sistemas RAG. Ollama permite correr modelos locales como llama3.1:8b de forma privada y segura sin depender de la nube. La memoria en LangGraph se logra mediante MemorySaver, un checkpointer.
