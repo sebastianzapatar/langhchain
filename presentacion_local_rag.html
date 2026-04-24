@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura RAG Local con Ollama y LangChain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --text-main: #f0f0f5;
+            --text-muted: #8b8b9f;
+            --accent-1: #6366f1; /* Indigo */
+            --accent-2: #ec4899; /* Pink */
+            --accent-3: #14b8a6; /* Teal */
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --gradient-main: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            --gradient-sub: linear-gradient(135deg, var(--accent-3), var(--accent-1));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Presentation Container */
+        .presentation-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            perspective: 1500px;
+        }
+
+        /* Slides */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 4rem 6rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateZ(-500px) rotateY(20deg);
+            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateZ(0) rotateY(0);
+            z-index: 10;
+        }
+
+        .slide.previous {
+            transform: translateZ(-500px) rotateY(-20deg);
+            opacity: 0;
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-wrap: balance;
+        }
+
+        h2 {
+            font-size: 3rem;
+            color: #fff;
+            position: relative;
+            display: inline-block;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--gradient-sub);
+            border-radius: 2px;
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+        }
+
+        strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        /* Cards & Glassmorphism */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gradient-sub);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .card-text {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #0f0f13;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .code-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--card-border);
+            border-radius: 12px 12px 0 0;
+        }
+
+        pre code {
+            display: block;
+            margin-top: 1.5rem;
+        }
+
+        /* Flow Diagrams (CSS purely) */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-top: 2rem;
+            border: 1px solid var(--card-border);
+        }
+
+        .flow-node {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .flow-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #1a1a24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+            border: 2px solid var(--accent-1);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-node:nth-child(2) .flow-icon { border-color: var(--accent-2); box-shadow: 0 0 20px rgba(236, 72, 153, 0.3); }
+        .flow-node:nth-child(3) .flow-icon { border-color: var(--accent-3); box-shadow: 0 0 20px rgba(20, 184, 166, 0.3); }
+
+        .flow-label {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .flow-arrow {
+            flex: 0.5;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+            position: relative;
+        }
+
+        .flow-arrow::after {
+            content: '▶';
+            position: absolute;
+            right: -5px;
+            top: -10px;
+            color: var(--accent-2);
+            font-size: 1.2rem;
+        }
+
+        /* Background effects */
+        .bg-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            top: -100px;
+            right: -100px;
+            z-index: -1;
+            filter: blur(40px);
+        }
+
+        .bg-glow-2 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            bottom: -100px;
+            left: -100px;
+            z-index: -1;
+            filter: blur(40px);
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:hover {
+            background: var(--accent-1);
+            border-color: var(--accent-1);
+            transform: scale(1.1);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-main);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-purple { background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-pink { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .badge-teal { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <div class="presentation-container">
+        
+        <!-- SLIDE 1: PORTADA -->
+        <div class="slide active">
+            <div style="text-align: center; max-width: 1000px; margin: 0 auto;">
+                <div style="margin-bottom: 2rem;">
+                    <span class="badge badge-purple">Inteligencia Artificial</span>
+                    <span class="badge badge-pink">LangChain</span>
+                    <span class="badge badge-teal">Local RAG</span>
+                </div>
+                <h1>Sistemas RAG Autónomos y Privados</h1>
+                <p style="margin: 2rem auto; font-size: 1.5rem; color: #fff;">Construyendo un cerebro corporativo local con Ollama (Llama 3.1), PostgreSQL y LangGraph.</p>
+                <div style="margin-top: 3rem; display: flex; justify-content: center; gap: 2rem;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg" height="50" style="opacity: 0.7;">
+                    <i class="fa-solid fa-database" style="font-size: 3rem; color: #475569;"></i>
+                    <i class="fa-solid fa-server" style="font-size: 3rem; color: #475569;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: ¿QUÉ ES RAG? -->
+        <div class="slide">
+            <h2>¿Qué es RAG?</h2>
+            <p><strong>Retrieval-Augmented Generation</strong> es una técnica que le da a un Modelo de Lenguaje (LLM) la capacidad de "leer" documentos privados antes de responder.</p>
+            
+            <div class="grid-3">
+                <div class="glass-card">
+                    <i class="fa-solid fa-brain card-icon"></i>
+                    <div class="card-title">El Problema</div>
+                    <div class="card-text">Llama 3.1 es inteligente, pero no sabe nada de los documentos internos de tu empresa o de PDFs confidenciales.</div>
+                </div>
+                <div class="glass-card" style="transform: scale(1.05); border-color: rgba(99,102,241,0.5);">
+                    <i class="fa-solid fa-magnifying-glass card-icon" style="color: var(--accent-1)"></i>
+                    <div class="card-title">El Retrieval (Búsqueda)</div>
+                    <div class="card-text">Buscamos en nuestra base de datos vectorial los párrafos más relevantes relacionados con la pregunta del usuario.</div>
+                </div>
+                <div class="glass-card">
+                    <i class="fa-solid fa-pen-nib card-icon"></i>
+                    <div class="card-title">La Generación</div>
+                    <div class="card-text">Le pasamos esos párrafos al LLM y le decimos: <em>"Responde al usuario basándote SOLO en esta información."</em></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: LA ARQUITECTURA -->
+        <div class="slide">
+            <h2>Nuestra Arquitectura Local</h2>
+            <p>Hemos diseñado una solución <strong>100% privada</strong>. Sin enviar datos a OpenAI ni a internet. Todo corre en la memoria de la máquina.</p>
+            
+            <div class="flow-container">
+                <div class="flow-node">
+                    <div class="flow-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                    <div class="flow-label">1. Ingesta (ETL)</div>
+                    <div class="flow-desc">PyPDFLoader + RecursiveSplitter</div>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node">
+                    <div class="flow-icon"><i class="fa-solid fa-database"></i></div>
+                    <div class="flow-label">2. Vector DB</div>
+                    <div class="flow-desc">PGVector + Embeddings</div>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node">
+                    <div class="flow-icon"><i class="fa-solid fa-robot"></i></div>
+                    <div class="flow-label">3. Agente de IA</div>
+                    <div class="flow-desc">Llama 3.1 + LangGraph</div>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node">
+                    <div class="flow-icon"><i class="fa-solid fa-globe"></i></div>
+                    <div class="flow-label">4. API Rest</div>
+                    <div class="flow-desc">FastAPI (/chat)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: INGESTA -->
+        <div class="slide">
+            <div class="grid-2">
+                <div>
+                    <h2>Fase 1: Ingesta (ETL)</h2>
+                    <p>Los LLMs no pueden leer un PDF de 500 páginas de golpe (colapsaría su memoria de contexto). Por eso usamos la técnica del <strong>Chunking</strong>.</p>
+                    <ul style="list-style: none; margin-top: 2rem;">
+                        <li style="margin-bottom: 1rem;"><i class="fa-solid fa-check text-main" style="color: var(--accent-3); margin-right: 10px;"></i> <strong>Extract:</strong> Leemos los archivos <code>.txt</code> y <code>.pdf</code>.</li>
+                        <li style="margin-bottom: 1rem;"><i class="fa-solid fa-check text-main" style="color: var(--accent-3); margin-right: 10px;"></i> <strong>Transform:</strong> Partimos el texto en trozos de 1000 caracteres, solapándolos 200 caracteres para no cortar ideas (RecursiveCharacterTextSplitter).</li>
+                        <li style="margin-bottom: 1rem;"><i class="fa-solid fa-check text-main" style="color: var(--accent-3); margin-right: 10px;"></i> <strong>Load:</strong> Los guardamos en PostgreSQL.</li>
+                    </ul>
+                </div>
+                <div>
+<pre>
+<div class="code-header">local_rag/ingestion.py</div><code>text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200,
+    add_start_index=True
+)
+chunks = text_splitter.split_documents(documentos)
+
+vector_store = PGVector(
+    embeddings=embeddings,
+    collection_name="documentos_locales",
+    connection=PG_URI
+)
+vector_store.add_documents(chunks, ids)</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: EMBEDDINGS -->
+        <div class="slide">
+            <h2>El Secreto: Embeddings</h2>
+            <p>¿Cómo busca la base de datos el texto más relevante si no usamos palabras exactas? Usamos matemáticas espaciales.</p>
+            
+            <div class="grid-2">
+                <div class="glass-card">
+                    <div class="card-title">nomic-embed-text</div>
+                    <div class="card-text">
+                        Este pequeño modelo local de Ollama lee cada "chunk" de texto y lo convierte en un <strong>Vector</strong> (una lista inmensa de coordenadas matemáticas).<br><br>
+                        Textos con significados similares terminan teniendo coordenadas cercanas en el espacio vectorial.
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <div class="card-title">PGVector (PostgreSQL)</div>
+                    <div class="card-text">
+                        Nuestra base de datos tradicional de Postgres tiene una extensión que le permite guardar estos vectores y hacer <strong>Búsqueda de Similitud (Búsqueda Semántica)</strong>.<br><br>
+                        Cuando el usuario pregunta, convertimos la pregunta a un vector y buscamos los vecinos más cercanos.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: EL AGENTE -->
+        <div class="slide">
+            <div class="grid-2">
+                <div>
+<pre>
+<div class="code-header">local_rag/agent.py</div><code>@tool
+def buscar_en_documentos(consulta: str):
+    """Busca en la base vectorial"""
+    retriever = obtener_retriever()
+    return retriever.invoke(consulta)
+
+# Nodo del Grafo
+def nodo_asistente(estado: EstadoAgente):
+    # El LLM decide si llama a la tool
+    respuesta = modelo_con_tools.invoke(
+        [system_prompt] + estado["messages"]
+    )
+    return {"messages": [respuesta]}</code></pre>
+                </div>
+                <div>
+                    <h2>Fase 2: El Agente Inteligente</h2>
+                    <p>No estamos haciendo una simple cadena estática. Construimos un <strong>Agente Autónomo</strong> usando LangGraph.</p>
+                    <p>Le damos al modelo `llama3.1:8b` una herramienta (Tool): <code>buscar_en_documentos</code>.</p>
+                    <p><strong>El flujo dinámico:</strong></p>
+                    <ol style="margin-left: 2rem; color: var(--text-muted); line-height: 1.8;">
+                        <li>El usuario hace una pregunta.</li>
+                        <li>El LLM piensa: <em>"¿Sé esto? No. ¿Debo usar la herramienta? Sí."</em></li>
+                        <li>El LLM ejecuta la búsqueda vectorial.</li>
+                        <li>Lee los resultados.</li>
+                        <li>Genera la respuesta final en español perfecto.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: MEMORIA -->
+        <div class="slide">
+            <h2>Memoria Conversacional</h2>
+            <p>Los modelos de IA no tienen memoria por defecto; cada pregunta es una "hoja en blanco". Para que haya una conversación fluida, usamos <strong>LangGraph Checkpointers</strong>.</p>
+            
+            <div class="grid-3">
+                <div class="glass-card">
+                    <i class="fa-solid fa-box-archive card-icon"></i>
+                    <div class="card-title">MemorySaver</div>
+                    <div class="card-text">Intercepta cada estado del grafo (los mensajes enviados y recibidos) y los guarda en RAM.</div>
+                </div>
+                <div class="glass-card">
+                    <i class="fa-solid fa-fingerprint card-icon" style="color: var(--accent-2)"></i>
+                    <div class="card-title">El Thread ID</div>
+                    <div class="card-text">Cada conversación tiene un identificador único. Si pasas el mismo ID, el agente "recuerda" la charla anterior.</div>
+                </div>
+                <div class="glass-card">
+                    <i class="fa-solid fa-brain card-icon" style="color: var(--accent-3)"></i>
+                    <div class="card-title">El Contexto</div>
+                    <div class="card-text">Antes de responder, el sistema inyecta automáticamente todo el historial de la charla en el Prompt.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: LA API FASTAPI -->
+        <div class="slide">
+            <div class="grid-2">
+                <div>
+                    <h2>Fase 3: Exposición como API REST</h2>
+                    <p>Para que este motor de IA sirva de algo en el mundo real, necesitamos exponerlo para que los Frontend (Angular, React, Vue) puedan consumirlo.</p>
+                    <div class="glass-card" style="margin-top: 1rem; padding: 1.5rem;">
+                        <strong style="color: var(--accent-1);">POST /ingestar</strong>
+                        <p style="margin-bottom: 0; font-size: 1rem;">Lee la carpeta local, vectoriza y guarda. Se ejecuta cuando un admin sube nuevos documentos.</p>
+                    </div>
+                    <div class="glass-card" style="margin-top: 1rem; padding: 1.5rem;">
+                        <strong style="color: var(--accent-2);">POST /chat</strong>
+                        <p style="margin-bottom: 0; font-size: 1rem;">Recibe un JSON <code>{"mensaje": "Hola", "thread_id": "123"}</code> y devuelve la respuesta del Agente + los pasos internos que tomó.</p>
+                    </div>
+                </div>
+                <div>
+                    <img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" width="100%" style="opacity: 0.8; margin-top: 2rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: CONCLUSIÓN -->
+        <div class="slide" style="text-align: center;">
+            <h2>En Conclusión</h2>
+            <p style="margin: 0 auto 3rem; text-align: center;">Hemos construido una arquitectura RAG empresarial, lista para producción, totalmente privada y gratuita usando el poder del Open Source.</p>
+            
+            <div class="glass-card" style="display: inline-block; text-align: left; max-width: 600px; margin: 0 auto;">
+                <h3 style="color: var(--accent-3);"><i class="fa-solid fa-forward-step" style="margin-right: 10px;"></i> Siguientes Pasos (Próxima Clase)</h3>
+                <ul style="color: var(--text-muted); line-height: 2; margin-left: 1.5rem;">
+                    <li>Desarrollar un Frontend interactivo en React/Angular.</li>
+                    <li>Crear un endpoint para cargar PDFs desde la web (Multipart Form).</li>
+                    <li>Cambiar <code>MemorySaver</code> por <code>PostgresSaver</code> para que la memoria sobreviva a reinicios del servidor.</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Controls & Progress -->
+    <div class="controls">
+        <button class="control-btn" id="prevBtn" title="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="control-btn" id="nextBtn" title="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+        
+        let currentSlide = 0;
+
+        function updateSlides() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'previous');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index < currentSlide) {
+                    slide.classList.add('previous');
+                }
+            });
+            
+            // Update progress
+            const progress = ((currentSlide) / (slides.length - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            // Update buttons
+            prevBtn.style.opacity = currentSlide === 0 ? '0.3' : '1';
+            prevBtn.style.cursor = currentSlide === 0 ? 'default' : 'pointer';
+            
+            nextBtn.style.opacity = currentSlide === slides.length - 1 ? '0.3' : '1';
+            nextBtn.style.cursor = currentSlide === slides.length - 1 ? 'default' : 'pointer';
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlides();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlides();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                if (currentSlide < slides.length - 1) currentSlide++;
+                updateSlides();
+            } else if (e.key === 'ArrowLeft') {
+                if (currentSlide > 0) currentSlide--;
+                updateSlides();
+            }
+        });
+
+        // Init
+        updateSlides();
+    </script>
+</body>
+</html>
