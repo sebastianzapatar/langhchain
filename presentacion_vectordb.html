@@ -922,6 +922,33 @@
         .layer--4 { background: rgba(255, 214, 68, 0.12); border: 1px solid rgba(255, 214, 68, 0.25); }
         .layer--5 { background: rgba(54, 215, 215, 0.12); border: 1px solid rgba(54, 215, 215, 0.25); }
 
+        .home-btn {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .home-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 106, 255, 0.4);
+        }
+
         /* ═══════════════════════════════════════════════════════
            RESPONSIVE
            ═══════════════════════════════════════════════════════ */
@@ -939,6 +966,10 @@
     </style>
 </head>
 <body>
+
+    <a href="index.html" class="home-btn">
+        <i class="fa-solid fa-house"></i> Volver a Inicio
+    </a>
 
     <!-- Animated background -->
     <div class="bg-particles">

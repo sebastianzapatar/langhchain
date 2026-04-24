@@ -527,6 +527,29 @@
             margin-top: 0.5rem;
         }
 
+        .home-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.6rem;
+            background: rgba(108, 99, 255, 0.1);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: var(--transition-fast);
+            margin-top: 1rem;
+        }
+
+        .home-btn:hover {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: var(--accent-primary);
+        }
+
         /* ═══════════════════════════════════════════════════════
            RESPONSIVE
            ═══════════════════════════════════════════════════════ */
@@ -606,6 +629,10 @@
                 <span class="status-dot"></span>
                 <span id="statusText">Conectado — localhost:8000</span>
             </div>
+            
+            <a href="index.html" class="home-btn" title="Volver al inicio">
+                🏠 Volver a Inicio
+            </a>
         </div>
 
         <!-- ═══════════════════════════════════════════════════
