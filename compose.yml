@@ -43,12 +43,12 @@ services:
   # API en: http://localhost:11434
   #
   # Modelos descargados automáticamente al iniciar:
-  #   - llama3.2:1b        → Chat (1.3 GB, rápido)
+  #   - llama3.1:8b        → Chat (~4.7 GB, modelo muy robusto)
   #   - nomic-embed-text   → Embeddings (274 MB)
   #
   # Para agregar más modelos:
   #   docker exec rag-ollama ollama pull mistral:7b
-  #   docker exec rag-ollama ollama pull llama3.2:3b
+  #   docker exec rag-ollama ollama pull llama3.1:8b
   # ────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
@@ -87,10 +87,10 @@ services:
         echo "════════════════════════════════════════════"
 
         echo ""
-        echo "🤖 Descargando llama3.2:1b (chat, ~1.3 GB)..."
-        curl -s http://ollama:11434/api/pull -d '{"name": "llama3.2:1b"}' | tail -1
+        echo "🤖 Descargando llama3.1:8b (chat, modelo muy robusto)..."
+        curl -s http://ollama:11434/api/pull -d '{"name": "llama3.1:8b"}' | tail -1
         echo ""
-        echo "✅ llama3.2:1b listo"
+        echo "✅ llama3.1:8b listo"
 
         echo ""
         echo "🔢 Descargando nomic-embed-text (embeddings, ~274 MB)..."

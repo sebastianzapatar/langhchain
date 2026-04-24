@@ -29,7 +29,7 @@ class Config:
     Uso con Ollama (local, gratis):
         config = Config(
             provider="ollama",
-            chat_model="llama3.2:1b",
+            chat_model="llama3.1:8b",
             embedding_model="nomic-embed-text",
         )
 
@@ -55,8 +55,7 @@ class Config:
     # Los modelos se descargan con: ollama pull <modelo>
     #
     # Modelos de chat recomendados:
-    #   - llama3.2:1b    → 1.3 GB, rápido, ideal para pruebas
-    #   - llama3.2:3b    → 2.0 GB, mejor calidad
+    #   - llama3.2:3b    → 2.0 GB, modelo medio robusto, mejor calidad
     #   - llama3.1:8b    → 4.7 GB, muy buena calidad
     #   - mistral:7b     → 4.1 GB, bueno en español
     #   - gemma2:9b      → 5.4 GB, excelente calidad
@@ -106,8 +105,7 @@ class Config:
     #   - gpt-4o-mini: rápido, económico, buena calidad
     #   - gpt-4o: mejor calidad, más lento y costoso
     # Ollama:
-    #   - llama3.2:1b: ultraligero, rápido
-    #   - llama3.2:3b: mejor balance calidad/velocidad
+    #   - llama3.1:8b: modelo muy robusto, excelente calidad
     #   - mistral:7b: muy bueno en español
     chat_model: str = "gpt-4o-mini"
     chat_temperature: float = 0  # 0 = determinístico, sin creatividad
@@ -208,7 +206,7 @@ class Config:
         if self.provider == "ollama":
             # Si los modelos siguen siendo los de OpenAI, cambiarlos
             if self.chat_model == "gpt-4o-mini":
-                self.chat_model = "llama3.2:1b"
+                self.chat_model = "llama3.1:8b"
             if self.embedding_model == "text-embedding-3-small":
                 self.embedding_model = "nomic-embed-text"
             # Ollama necesita una colección separada porque los

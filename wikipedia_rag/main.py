@@ -228,7 +228,7 @@ def main():
 Ejemplos:
   python -m wikipedia_rag                              # OpenAI (default)
   python -m wikipedia_rag --provider ollama             # Ollama local
-  python -m wikipedia_rag --provider ollama --modelo llama3.2:3b
+  python -m wikipedia_rag --provider ollama --modelo llama3.1:8b
   python -m wikipedia_rag --solo-ingesta               # Solo ingestar
   python -m wikipedia_rag --solo-chat                   # Solo chatear
   python -m wikipedia_rag --solo-chat --provider ollama # Chat con Ollama
@@ -239,7 +239,7 @@ Ejemplos:
     parser.add_argument("--provider", choices=["openai", "ollama"], default="openai",
                         help="Proveedor de modelos: 'openai' (cloud) o 'ollama' (local)")
     parser.add_argument("--modelo", type=str, default=None,
-                        help="Modelo de chat a usar (ej: llama3.2:1b, gpt-4o-mini)")
+                        help="Modelo de chat a usar (ej: llama3.1:8b, gpt-4o-mini)")
     parser.add_argument("--embedding", type=str, default=None,
                         help="Modelo de embeddings (ej: nomic-embed-text)")
     parser.add_argument("--solo-chat", action="store_true",

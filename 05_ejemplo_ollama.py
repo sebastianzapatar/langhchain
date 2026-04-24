@@ -15,9 +15,8 @@ Conceptos cubiertos:
   5. Streaming de respuestas (token por token)
 
 Requisitos:
-  - Ollama corriendo: docker compose up -d
-    (o instalado localmente: https://ollama.ai)
-  - Modelo descargado: ollama pull llama3.2:1b
+  - Ollama instalado y corriendo (https://ollama.com)
+  - Modelo descargado: ollama pull llama3.1:8b
 
 Ejecutar:
   python 05_ejemplo_ollama.py
@@ -35,7 +34,7 @@ Ejecutar:
 #  │    import ChatOpenAI     │    import ChatOllama       │
 #  │                          │                            │
 #  │  llm = ChatOpenAI(       │  llm = ChatOllama(         │
-#  │    model="gpt-4o-mini",  │    model="llama3.2:1b",    │
+#  │    model="gpt-4o-mini",  │    model="llama3.1:8b",    │
 #  │    temperature=0.7       │    temperature=0.7,        │
 #  │  )                       │    base_url="http://       │
 #  │                          │      localhost:11434"      │
@@ -67,12 +66,12 @@ from langchain_core.output_parsers import StrOutputParser  # Mismo que con OpenA
 #   (o: docker exec rag-ollama ollama list)
 #
 # Para descargar un modelo nuevo:
-#   ollama pull llama3.2:3b
+#   ollama pull llama3.1:8b
 #   ollama pull mistral:7b
 # ═══════════════════════════════════════════════════════════
 
 OLLAMA_URL = "http://localhost:11434"
-MODELO = "llama3.2:1b"   # Modelo pequeño, rápido (~1.3 GB)
+MODELO = "llama3.1:8b"   # Modelo muy robusto
 
 print("=" * 60)
 print("🏠 EJEMPLO SIMPLE: LangChain + Ollama (Local)")
@@ -92,7 +91,7 @@ print("-" * 40)
 # Inicializamos el modelo de Ollama
 # Comparación con OpenAI:
 #   OpenAI:  llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-#   Ollama:  llm = ChatOllama(model="llama3.2:1b", temperature=0.7)
+#   Ollama:  llm = ChatOllama(model="llama3.1:8b", temperature=0.7)
 llm = ChatOllama(
     model=MODELO,
     temperature=0.7,
@@ -258,7 +257,7 @@ print("""
   └─────────────────────────────────────────────────┘
 
   💡 Para usar otro modelo, cambia MODELO al inicio:
-     MODELO = "llama3.2:3b"    # Mejor calidad
+     MODELO = "llama3.1:8b"    # Mejor calidad
      MODELO = "mistral:7b"     # Bueno en español
      MODELO = "gemma2:9b"      # Excelente calidad
 """)

@@ -59,9 +59,9 @@ class ModelFactory:
 
         Ollama (local):
             - Requiere servidor Ollama corriendo (ollama serve)
-            - Modelos: llama3.2:1b, llama3.2:3b, mistral:7b
+            - Modelos: llama3.2:1b, llama3.1:8b, mistral:7b
             - Gratis, privado, sin internet
-            - Descargar modelo: ollama pull llama3.2:1b
+            - Descargar modelo: ollama pull llama3.1:8b
 
         Args:
             config: Configuración con provider, chat_model y temperature.
