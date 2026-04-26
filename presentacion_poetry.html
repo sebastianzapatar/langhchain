@@ -609,7 +609,7 @@ dependencies = { idna = ">=2.8", sniffio = ">=1.1" }
                 <div class="glass-card">
                     <h3 class="card-title" style="color: #2dd4bf;"><i class="fa-solid fa-terminal"></i> Flujo de Trabajo Profesional</h3>
                     <ul style="list-style: none; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
-                        <li><span class="badge badge-purple" style="font-size: 0.6rem; min-width: 60px; text-align: center;">INIT</span> <code style="color: #818cf8;">poetry init</code></li>
+                        <li><span class="badge badge-purple" style="font-size: 0.6rem; min-width: 60px; text-align: center;">INIT</span> <code style="color: #818cf8;">poetry init --python "&gt;=3.10,&lt;4.0"</code></li>
                         <li><span class="badge badge-teal" style="font-size: 0.6rem; min-width: 60px; text-align: center;">PROD</span> <code style="color: #2dd4bf;">poetry add fastapi uvicorn psycopg2</code></li>
                         <li><span class="badge badge-pink" style="font-size: 0.6rem; min-width: 60px; text-align: center;">DEV</span> <code style="color: #f472b6;">poetry add --group dev pytest black</code></li>
                         <li><span class="badge badge-purple" style="font-size: 0.6rem; min-width: 60px; text-align: center;">LOCK</span> <code style="color: #818cf8;">poetry lock</code> <span style="font-size: 0.8rem;">(Asegura versiones)</span></li>
@@ -647,8 +647,8 @@ dependencies = { idna = ">=2.8", sniffio = ">=1.1" }
                     <h3 class="card-title" style="color: #2dd4bf;"><i class="fa-solid fa-code-branch"></i> Paso a Paso para Configurar Todo</h3>
                     <ul style="list-style: none; color: var(--text-muted); font-size: 0.92rem; line-height: 1.8;">
                         <li><span class="badge badge-purple" style="font-size: 0.6rem; min-width: 65px; text-align: center;">1. DB</span> <code style="color: #818cf8;">docker-compose up -d</code> <span style="font-size: 0.8rem;">(Levanta Postgres)</span></li>
-                        <li><span class="badge badge-teal" style="font-size: 0.6rem; min-width: 65px; text-align: center;">2. INIT</span> <code style="color: #2dd4bf;">poetry init</code> <span style="font-size: 0.8rem;">(Crea pyproject.toml)</span></li>
-                        <li><span class="badge badge-pink" style="font-size: 0.6rem; min-width: 65px; text-align: center;">3. ADDS</span> <code style="color: #f472b6;">poetry add langchain langchain-openai langchain-postgres psycopg[binary] fastapi uvicorn pypdf python-dotenv</code></li>
+                        <li><span class="badge badge-teal" style="font-size: 0.6rem; min-width: 65px; text-align: center;">2. INIT</span> <code style="color: #2dd4bf;">poetry init --python "&gt;=3.10,&lt;4.0"</code> <span style="font-size: 0.8rem;">(Crea pyproject.toml)</span></li>
+                        <li><span class="badge badge-pink" style="font-size: 0.6rem; min-width: 65px; text-align: center;">3. ADDS</span> <code style="color: #f472b6;">poetry add langchain langchain-openai langchain-postgres "psycopg[binary]" fastapi uvicorn pypdf python-dotenv</code></li>
                         <li><span class="badge badge-purple" style="font-size: 0.6rem; min-width: 65px; text-align: center;">4. RUN L</span> <code style="color: #818cf8;">poetry run python -m local_rag.api</code> <span style="font-size: 0.8rem;">(API Local)</span></li>
                         <li><span class="badge badge-teal" style="font-size: 0.6rem; min-width: 65px; text-align: center;">5. RUN O</span> <code style="color: #2dd4bf;">poetry run python -m openai_rag.api</code> <span style="font-size: 0.8rem;">(API OpenAI)</span></li>
                         <li><span class="badge badge-pink" style="font-size: 0.6rem; min-width: 65px; text-align: center;">6. FRONT</span> <span style="font-size: 0.85rem;">Abrir <code>frontend.html</code> o <code>index.html</code></span></li>
